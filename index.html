@@ -636,7 +636,7 @@ footer a:hover{color:var(--gold-soft)}
   var done=document.getElementById('done');
   // Set this to your Supabase functions URL once the portal is deployed (DEPLOY.md step 8), e.g.
   // 'https://abcd1234.functions.supabase.co/web-request'. Empty = fall back to the visitor's email app.
-  var INTAKE_URL='';
+  var INTAKE_URL='https://rbupsgbmqhbvycfjphbf.supabase.co/functions/v1/web-request';
   form.addEventListener('submit',async function(e){
     e.preventDefault();
     var name=document.getElementById('f-name').value.trim();
