@@ -596,7 +596,7 @@ footer a:hover{color:var(--gold-soft)}
         <label>What do you need?<select id="f-type" name="type"><option>Virtual visit (30 min)</option><option>New patient or complex visit (45 min)</option><option>Prescription renewal</option><option>Sick note or form</option><option>Specialist referral</option><option>Geriatric assessment</option><option>Medication review and deprescribing</option><option>Facility visiting agreement</option><option>Something else</option></select></label>
         <label>Tell us briefly what's going on<textarea id="f-msg" name="message" placeholder="Who the visit is for, main concern, preferred days or times. No health card numbers here, please."></textarea></label>
         <button class="btn btn-coral" type="submit">Send request</button>
-        <p class="notice">By sending this form you agree we may contact you by email or phone. Clinical details are collected once a visit is confirmed.</p>
+        <p class="notice">By sending this form you agree we may contact you by email, phone or text about your request. Clinical details are collected once a visit is confirmed. See our <a href="privacy.html">privacy policy</a>.</p>
         <div class="done" id="done" role="status"></div>
       </form>
     </div>
@@ -616,6 +616,7 @@ footer a:hover{color:var(--gold-soft)}
       <a href="#pricing">Pricing</a>
       <a href="#faq">FAQ</a>
       <a href="https://www.cno.org/" rel="noopener">College of Nurses of Ontario</a>
+      <a href="privacy.html">Privacy policy</a>
     </div>
     <p>Photos by Age Cymru, Vitaly Gariev, Nani Chavez, Alexander Grey, Nappy and the National Cancer Institute on <a href="https://unsplash.com/license" rel="noopener">Unsplash</a>.</p>
   </div>
@@ -633,12 +634,25 @@ footer a:hover{color:var(--gold-soft)}
     document.querySelectorAll('.drawer a').forEach(function(a){a.addEventListener('click',function(){nav.classList.remove('open');mb.setAttribute('aria-expanded','false');});});}
   var form=document.getElementById('booking');
   var done=document.getElementById('done');
-  form.addEventListener('submit',function(e){
+  // Set this to your Supabase functions URL once the portal is deployed (DEPLOY.md step 8), e.g.
+  // 'https://abcd1234.functions.supabase.co/web-request'. Empty = fall back to the visitor's email app.
+  var INTAKE_URL='';
+  form.addEventListener('submit',async function(e){
     e.preventDefault();
     var name=document.getElementById('f-name').value.trim();
     var email=document.getElementById('f-email').value.trim();
     if(!name||!email||email.indexOf('@')<0){done.textContent='Please add your name and a valid email so we can reply.';done.className='done show';return;}
     var type=document.getElementById('f-type').value,role=document.getElementById('f-role').value,msg=document.getElementById('f-msg').value.trim(),phone=document.getElementById('f-phone').value.trim();
+    var btn=form.querySelector('button[type=submit]');
+    if(INTAKE_URL){
+      btn.disabled=true;btn.textContent='Sending…';
+      try{
+        var r=await fetch(INTAKE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,email:email,phone:phone,role:role,type:type,message:msg,website:''})});
+        var j=await r.json().catch(function(){return {}});
+        if(r.ok&&j.ok){done.innerHTML='<b>Request received.</b> Thank you, '+name.split(' ')[0].replace(/</g,'&lt;')+'. We reply within one business day to '+email.replace(/</g,'&lt;')+'.';done.className='done show';form.reset();btn.disabled=false;btn.textContent='Send request';return;}
+        throw new Error(j.error||'Could not send');
+      }catch(err){btn.disabled=false;btn.textContent='Send request';/* fall through to email */}
+    }
     var body='Name: '+name+'\nEmail: '+email+'\nPhone: '+phone+'\nBooking as: '+role+'\nRequest: '+type+'\n\n'+msg;
     var href='mailto:clinic@pmphealthcare.ca?subject='+encodeURIComponent('Appointment request: '+type)+'&body='+encodeURIComponent(body);
     done.innerHTML='Thanks, '+name.split(' ')[0].replace(/</g,'&lt;')+'. Your request is ready. <a href="'+href+'">Open it in your email app</a>, or copy the details and email <b>clinic@pmphealthcare.ca</b>.<pre style="white-space:pre-wrap;margin:.6rem 0 0;font-size:.85rem">'+body.replace(/</g,'&lt;')+'</pre>';
